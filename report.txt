@@ -1,0 +1,13 @@
+Report
+
+WARNING: Line 7: code after RETURN statement.
+WARNING: Variable y used before declaration.
+
+METRICS
+
+Lines: 9
+Declared: 1
+Used: 2
+Errors: 0
+Warnings: 2
+Time: 0.0003
