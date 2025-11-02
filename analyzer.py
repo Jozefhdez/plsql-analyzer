@@ -1,19 +1,21 @@
 import time
 
 
-def analyze_file(filename):
-    start = time.time()
-    with open(filename, 'r') as f:
-        lines = f.readlines()
+TYPES = ['NUMBER', 'VARCHAR2', 'INT', 'BOOLEAN']
 
+
+def read_file(filename):
+    with open(filename, 'r') as f:
+        return f.readlines()
+
+
+def find_declarations_and_usage(lines):
     declared = set()
     used = set()
     warnings = []
     errors = []
     in_block = 0
     after_return = False
-
-    types = ['NUMBER', 'VARCHAR2', 'INT', 'BOOLEAN']
 
     for i, line in enumerate(lines, start=1):
         stripped_line = line.strip()
@@ -24,7 +26,7 @@ def analyze_file(filename):
         tokens_upper = [t.upper() for t in tokens]
 
         for j, token in enumerate(tokens_upper):
-            if token in types and j > 0:
+            if token in TYPES and j > 0:
                 var_name = tokens[j - 1].strip(';')
                 declared.add(var_name.lower())  # add all declared variables
 
@@ -54,6 +56,11 @@ def analyze_file(filename):
             if exec_tokens:
                 warnings.append(f'Line {i}: code after RETURN statement.')
 
+    return declared, used, in_block, warnings, errors
+
+
+def analyze_variables(declared, used):
+    warnings = []
     unused = declared - used
     undeclared = used - declared
 
@@ -62,20 +69,10 @@ def analyze_file(filename):
     for var in undeclared:
         warnings.append(f'Variable {var} used before declaration.')
 
-    if in_block > 0:
-        errors.append(f"Unmatched BEGIN: {in_block} block(s) not closed.")
+    return warnings
 
-    elapsed = time.time() - start
 
-    metrics = {
-        'Lines': len(lines),
-        'Declared': len(declared),
-        'Used': len(used),
-        'Errors': len(errors),
-        'Warnings': len(warnings),
-        'Time': round(elapsed, 4)
-    }
-
+def generate_report(errors, warnings, metrics, filename='report.txt'):
     with open('report.txt', 'w') as out:
         out.write('Report\n\n')
         for e in errors:
@@ -89,5 +86,29 @@ def analyze_file(filename):
     print('Report saved to report.txt')
 
 
+def main(filename):
+    start = time.time()
+    lines = read_file(filename)
+
+    declared, used, in_block, warnings, errors = find_declarations_and_usage(
+        lines)
+    warnings += analyze_variables(declared, used)
+
+    if in_block > 0:
+        errors.append(f"Unmatched BEGIN: {in_block} block(s) not closed.")
+
+    elapsed = time.time() - start
+    metrics = {
+        'Lines': len(lines),
+        'Declared': len(declared),
+        'Used': len(used),
+        'Errors': len(errors),
+        'Warnings': len(warnings),
+        'Time': round(elapsed, 4)
+    }
+
+    generate_report(errors, warnings, metrics)
+
+
 if __name__ == '__main__':
-    analyze_file('sample.sql')
+    main('sample.sql')
